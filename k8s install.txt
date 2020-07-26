@@ -1,0 +1,76 @@
+https://www.linuxtechi.com/install-kubernetes-1-7-centos7-rhel7/
+
+yum install firewalld
+systemctl stop firewalld
+systemctl disable firewalld
+swapoff -a
+sed -i.bak -r 's/(.+ swap  .+)/#\1/' /etc/fstab
+setenforce 0
+sed -i 's/enforcing/disabled/g' /etc/selinux/config
+
+
+
+
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=6443/tcp
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=2379-2380/tcp
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=10250/tcp
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=10251/tcp
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=10252/tcp
+[root@k8s-master ~]# firewall-cmd --permanent --add-port=10255/tcp
+[root@k8s-master ~]# firewall-cmd --reload
+[root@k8s-master ~]# modprobe br_netfilter
+[root@k8s-master ~]# echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+
+
+=======================================================================================
+
+cd /etc/yum.repos.d/
+vi kubernetes.repo
+
+>>then add below contents in the above repo file
+
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kube*
+
+
+
+============================================================================================
+
+
+yum install -y docker kubeadm kubelet kubectl  --disableexcludes=kubernetes
+
+systemctl enable docker && systemctl start docker
+systemctl enable kubelet && systemctl start kubelet
+
+
+==========================================================================
+
+
+vi /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+sysctl net.bridge.bridge-nf-call-iptables=1
+sysctl net.ipv4.ip_forward=1
+sysctl --system
+echo "1" > /proc/sys/net/ipv4/ip_forward
+
+systemctl daemon-reload
+systemctl restart kubelet
+
+kubeadm init
+
+>>below cert is generated 
+kubeadm join 172.31.1.249:6443 --token 3yjjba.aghuzrs2vuotjrkz \
+    --discovery-token-ca-cert-hash sha256:41b78f583fdb4783a31900d7fadf93e313ef8c64d7b903ebb71bf647904b8325
+
+
